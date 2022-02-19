@@ -30,7 +30,7 @@ class ModBot(discord.Client):
     def __init__(self, key):
         intents = discord.Intents.default()
         super().__init__(command_prefix='.', intents=intents)
-        self.group_num = None   
+        self.group_num = None
         self.mod_channels = {} # Map from guild to the mod channel id for that guild
         self.reports = {} # Map from user IDs to the state of their report
         self.perspective_key = key
@@ -47,7 +47,7 @@ class ModBot(discord.Client):
             self.group_num = match.group(1)
         else:
             raise Exception("Group number not found in bot's name. Name format should be \"Group # Bot\".")
-        
+
         # Find the mod channel in each guild that this bot should report to
         for guild in self.guilds:
             for channel in guild.text_channels:
@@ -56,13 +56,13 @@ class ModBot(discord.Client):
 
     async def on_message(self, message):
         '''
-        This function is called whenever a message is sent in a channel that the bot can see (including DMs). 
-        Currently the bot is configured to only handle messages that are sent over DMs or in your group's "group-#" channel. 
+        This function is called whenever a message is sent in a channel that the bot can see (including DMs).
+        Currently the bot is configured to only handle messages that are sent over DMs or in your group's "group-#" channel.
         '''
-        # Ignore messages from us 
+        # Ignore messages from us
         if message.author.id == self.user.id:
             return
-        
+
         # Check if this message was sent in a server ("guild") or if it's a DM
         if message.guild:
             await self.handle_channel_message(message)
@@ -87,7 +87,7 @@ class ModBot(discord.Client):
         # If we don't currently have an active report for this user, add one
         if author_id not in self.reports:
             self.reports[author_id] = Report(self)
-        
+
         # Let the report class handle this message; forward all the messages it returns to uss
         responses = await self.reports[author_id].handle_message(message)
         for r in responses:
@@ -97,11 +97,12 @@ class ModBot(discord.Client):
         if self.reports[author_id].report_complete():
             self.reports.pop(author_id)
 
+
     async def handle_channel_message(self, message):
         # Only handle messages sent in the "group-#" channel
         if not message.channel.name == f'group-{self.group_num}':
-            return 
-        
+            return
+
         # Forward the message to the mod channel
         mod_channel = self.mod_channels[message.guild.id]
         await mod_channel.send(f'Forwarded message:\n{message.author.name}: "{message.content}"')
@@ -134,10 +135,10 @@ class ModBot(discord.Client):
             scores[attr] = response_dict["attributeScores"][attr]["summaryScore"]["value"]
 
         return scores
-    
+
     def code_format(self, text):
         return "```" + text + "```"
-            
-        
+
+
 client = ModBot(perspective_key)
 client.run(discord_token)
