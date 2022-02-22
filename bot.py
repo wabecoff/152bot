@@ -7,6 +7,7 @@ import logging
 import re
 import requests
 from report import Report
+from user import User
 
 # Set up logging to the console
 logger = logging.getLogger('discord')
@@ -17,6 +18,7 @@ logger.addHandler(handler)
 
 # There should be a file called 'token.json' inside the same folder as this file
 token_path = 'tokens.json'
+
 if not os.path.isfile(token_path):
     raise Exception(f"{token_path} not found!")
 with open(token_path) as f:
@@ -27,12 +29,19 @@ with open(token_path) as f:
 
 
 class ModBot(discord.Client):
+
+
+
     def __init__(self, key):
         intents = discord.Intents.default()
         super().__init__(command_prefix='.', intents=intents)
         self.group_num = None
         self.mod_channels = {} # Map from guild to the mod channel id for that guild
         self.reports = {} # Map from user IDs to the state of their report
+        self.completed_reports = []
+        self.reported_users = dict()
+        self.STOP_READING_AS_TEXT = "this is a unique value"
+        self.PRINT_INFO = "this is a different unique"
         self.perspective_key = key
 
     async def on_ready(self):
@@ -90,8 +99,30 @@ class ModBot(discord.Client):
 
         # Let the report class handle this message; forward all the messages it returns to uss
         responses = await self.reports[author_id].handle_message(message)
-        for r in responses:
+        for i in range(len(responses)):
+            r = responses[i]
+            if(r == self.PRINT_INFO):
+                for user in self.reported_users.values():
+                    await message.channel.send(str(user.return_info()))
+                break
+            if(r == self.STOP_READING_AS_TEXT):
+                data = responses[i+1]
+                data.append(author_id)
+                user_id = data[0]
+                if user_id not in self.reported_users.keys():
+                    reported_user = User(user_id)
+                    report_id = reported_user.add_report(data[1], data[2:])
+                    self.reported_users[user_id] = reported_user
+                else:
+                    report_id = self.reported_users[user_id].add_report(data[1], data[2:])
+                if report_id == -1:
+                    await message.channel.send("You already reported that comment.")
+                else:
+                    self.completed_reports.append(report_id)
+                break
             await message.channel.send(r)
+            
+        await message.delete()
 
         # If the report is complete or cancelled, remove it from our map
         if self.reports[author_id].report_complete():
