@@ -20,7 +20,7 @@ class Report:
     ABUSE_TYPE = {"a","b","c","d"}
     STOP_READING_AS_TEXT = "this is a unique value"
     FETCH = "print users"
-    PRINT_INFO = "this is a different unique"
+
 
 
 
@@ -30,8 +30,9 @@ class Report:
         self.message = None
         self.link = None
         self.reported_id = None
-        self.type = ""
-        self.context = ""
+        self.reported_name = None
+        self.type = None
+        self.context = None
         self.file_report = False
 
 
@@ -43,10 +44,6 @@ class Report:
         get you started and give you a model for working with Discord.
         '''
         while(True):
-            if message.content == self.FETCH:
-                self.file_report = False
-                self.state = State.REPORT_COMPLETE
-                return [self.PRINT_INFO]
 
             if message.content == self.CANCEL_KEYWORD:
                 self.file_report = False
@@ -80,10 +77,12 @@ class Report:
 
                 # Here we've found the message - it's up to you to decide what to do next!
                 self.state = State.MESSAGE_IDENTIFIED
+                self.message = message
                 self.reported_id = message.author.id
+                self.reported_name = message.author.name
                 val = ["I found this message:", "```" + message.author.name + ": " + message.content + "```", \
                         "Is this the correct message? Answer yes/no."]
-                await message.delete()
+
                 return val
 
             if self.state == State.MESSAGE_IDENTIFIED:
@@ -101,11 +100,10 @@ class Report:
             if self.state == State.ASK_FOR_CONTEXT:
                 self.context = message.content
                 self.file_report = True
-                data = [self.reported_id, self.link, self.type, self.context]
+                self.state = State.REPORT_COMPLETE
+                data = [self.reported_id, self.link, self.reported_name, self.type, self.context]
                 return["Thank you for your report.", self.STOP_READING_AS_TEXT, data]
-                self.State = State.REPORT_COMPLETE
             return ["this is a message"]
-
 
         return []
 
