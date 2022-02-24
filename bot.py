@@ -16,8 +16,8 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-// Set your own thresholds for when to trigger a response
-const attributeThresholds = {
+# Set your own thresholds for when to trigger a response
+attributeThresholds = {
   'SEVERE_TOXICITY': 0.75,
   'PROFANITY': 0.75,
   'IDENTITY_ATTACK': 0.75,
@@ -50,6 +50,7 @@ class ModBot(discord.Client):
         self.mod_channels = {} # Map from guild to the mod channel id for that guild
         self.reports = {} # Map from user IDs to the state of their report
         self.completed_reports = []
+        self.striked_users = dict()
         self.reported_users = dict()
         self.STOP_READING_AS_TEXT = "this is a unique value"
         self.PRINT_INFO = "this is a different unique"
@@ -198,7 +199,23 @@ class ModBot(discord.Client):
         # Forward the message to the mod channel
         #mod_channel = self.mod_channels[message.guild.id]
         #await mod_channel.send(f'Forwarded message:\n{message.author.name}: "{message.content}"')
-        #scores = self.eval_text(message)
+        scores = self.eval_text(message)
+        userid = message.author.id
+
+        for attribute in attributeThresholds.keys():
+            if (scores[attribute] > attributeThresholds[attribute]):
+                message.react(f'You got a strike for {attribute}')
+                if user_id not in self.striked_users:
+                    self.striked_users[user_id = User(user_id)
+
+                self.striked_users[userid].num_strikes += 1
+                if self.deleting_msg:
+                    await message.channel.send("The message has been deleted.")
+                    await self.msg_to_delete.delete()
+
+            if num_strikes > 3:
+                message.react(f'{user_id} has received three strikes and is now banned!')
+
         #await mod_channel.send(self.code_format(json.dumps(scores, indent=2)))
 
     def eval_text(self, message):
