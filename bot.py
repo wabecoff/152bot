@@ -26,7 +26,7 @@ attributeThresholds = {
   'FLIRTATION': 0.75,
   'SPAM': 0.75,
   'OBSCENE': 0.75,
-};
+}
 
 # There should be a file called 'token.json' inside the same folder as this file
 token_path = 'tokens.json'
@@ -206,7 +206,7 @@ class ModBot(discord.Client):
             if (scores[attribute] > attributeThresholds[attribute]):
                 message.react(f'You got a strike for {attribute}')
                 if user_id not in self.striked_users:
-                    self.striked_users[user_id = User(user_id)
+                    self.striked_users[user_id] = User(user_id)
 
                 self.striked_users[userid].num_strikes += 1
                 if self.deleting_msg:
