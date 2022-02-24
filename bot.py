@@ -16,6 +16,18 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
+// Set your own thresholds for when to trigger a response
+const attributeThresholds = {
+  'SEVERE_TOXICITY': 0.75,
+  'PROFANITY': 0.75,
+  'IDENTITY_ATTACK': 0.75,
+  'THREAT': 0.75,
+  'TOXICITY': 0.75,
+  'FLIRTATION': 0.75,
+  'SPAM': 0.75,
+  'OBSCENE': 0.75,
+};
+
 # There should be a file called 'token.json' inside the same folder as this file
 token_path = 'tokens.json'
 
@@ -202,7 +214,8 @@ class ModBot(discord.Client):
             'requestedAttributes': {
                                     'SEVERE_TOXICITY': {}, 'PROFANITY': {},
                                     'IDENTITY_ATTACK': {}, 'THREAT': {},
-                                    'TOXICITY': {}, 'FLIRTATION': {}
+                                    'TOXICITY': {}, 'FLIRTATION': {}, 
+                                    'SPAM': {}, 'OBSCENE': {}
                                 },
             'doNotStore': True
         }
