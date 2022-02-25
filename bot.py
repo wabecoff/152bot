@@ -7,6 +7,7 @@ import logging
 import re
 import requests
 from report import Report
+from blacklist import Blacklist, Categories
 from user import User
 
 # Set up logging to the console
@@ -18,14 +19,14 @@ logger.addHandler(handler)
 
 # Set your own thresholds for when to trigger a response
 attributeThresholds = {
-  'SEVERE_TOXICITY': 0.75,
-  'PROFANITY': 0.75,
-  'IDENTITY_ATTACK': 0.75,
-  'THREAT': 0.75,
-  'TOXICITY': 0.75,
-  'FLIRTATION': 0.75,
-  'SPAM': 0.75,
-  'OBSCENE': 0.75,
+  'SEVERE_TOXICITY': 0.8,
+  'PROFANITY': 0.8,
+  'IDENTITY_ATTACK': 0.8,
+  'THREAT': 0.8,
+  'TOXICITY': 0.8,
+  'FLIRTATION': 0.8,
+  'SPAM': 0.7,
+  'OBSCENE': 0.8,
 }
 
 # There should be a file called 'token.json' inside the same folder as this file
@@ -59,7 +60,7 @@ class ModBot(discord.Client):
         self.msg_to_delete = None
         self.awaiting_mod = False
         self.deleting_msg = False
-
+        self.blacklistClass = Blacklist()
 
     async def on_ready(self):
         print(f'{self.user.name} has connected to Discord! It is these guilds:')
@@ -83,6 +84,8 @@ class ModBot(discord.Client):
                 if channel.name == f'group-{self.group_num}':
                     self.group_channel = channel
 
+
+
     async def on_message(self, message):
         '''
         This function is called whenever a message is sent in a channel that the bot can see (including DMs).
@@ -98,9 +101,17 @@ class ModBot(discord.Client):
         else:
             await self.handle_dm(message)
 
+    async def on_message_edit(self, message_before, message_after):
+        message = message_after
+        if message.author.id == self.user.id:
+            return
+        # Check if this message was sent in a server ("guild") or if it's a DM
+        if message.guild:
+            await self.automated(message)
+        return
+
     async def handle_dm(self, message):
         # Handle a help message
-
         if message.content == Report.HELP_KEYWORD:
             reply =  "Use the `report` command to begin the reporting process.\n"
             reply += "Use the `cancel` command to cancel the report process.\n"
@@ -196,27 +207,34 @@ class ModBot(discord.Client):
         if not message.channel.name == f'group-{self.group_num}':
             return
 
-        # Forward the message to the mod channel
-        #mod_channel = self.mod_channels[message.guild.id]
-        #await mod_channel.send(f'Forwarded message:\n{message.author.name}: "{message.content}"')
+        await self.automated(message)
+
+
+
+    async def automated(self, message):
+        #Blacklist comes preloaded with regex for bitcoin addresses as well as some dummy keywords like "Send Bitcoin".
+        #Ability for mods to add new keywords will be
+        for pattern, description in self.blacklistClass.blacklist.items():
+            if re.search(pattern , message.content) != None:
+                await self.group_channel.send(f"A message from \"" + message.author.name + f"\" has been flagged because -- {description}")
+                await message.delete()
+                #await self.mod_channel.send(f"Would you like us to delete the message.  Please respond with yes/no")
+                #self.msg_to_delete = message
+                #self.deleting_msg = True
+                #self.awaiting_mod = True
         scores = self.eval_text(message)
-        userid = message.author.id
-
-        for attribute in attributeThresholds.keys():
-            if (scores[attribute] > attributeThresholds[attribute]):
-                message.react(f'You got a strike for {attribute}')
-                if user_id not in self.striked_users:
-                    self.striked_users[user_id] = User(user_id)
-
-                self.striked_users[userid].num_strikes += 1
-                if self.deleting_msg:
-                    await message.channel.send("The message has been deleted.")
-                    await self.msg_to_delete.delete()
-
-            if num_strikes > 3:
-                message.react(f'{user_id} has received three strikes and is now banned!')
-
-        #await mod_channel.send(self.code_format(json.dumps(scores, indent=2)))
+        user_id = message.author.id
+        msg = message
+        violated_atts = [attribute for  attribute in attributeThresholds.keys() if scores[attribute] > attributeThresholds[attribute]]
+        if len(violated_atts) > 0:
+            await msg.reply(f'You got a strike for {violated_atts}')
+            if user_id not in self.striked_users.keys():
+                self.striked_users[user_id] = User(user_id)
+            self.striked_users[user_id].num_strikes += 1
+            if self.striked_users[user_id].num_strikes >= 3 and (not self.striked_users[user_id].is_banned()):
+                self.striked_users[user_id].ban()
+                await msg.reply(f'{user_id} has received three strikes and is now banned!')
+        return
 
     def eval_text(self, message):
         '''
@@ -231,7 +249,7 @@ class ModBot(discord.Client):
             'requestedAttributes': {
                                     'SEVERE_TOXICITY': {}, 'PROFANITY': {},
                                     'IDENTITY_ATTACK': {}, 'THREAT': {},
-                                    'TOXICITY': {}, 'FLIRTATION': {}, 
+                                    'TOXICITY': {}, 'FLIRTATION': {},
                                     'SPAM': {}, 'OBSCENE': {}
                                 },
             'doNotStore': True

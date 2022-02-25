@@ -2,8 +2,8 @@ import uuid
 
 class User:
 
-    reports_to_strike = 2
-    strikes_to_ban = 1
+    reports_to_strike = 1
+    strikes_to_ban = 3
     report_id_ind = 0
 
     def __init__(self, id):
@@ -57,3 +57,6 @@ class User:
 
     def is_banned(self):
         return self.banned
+
+    def ban(self):
+        self.banned = True

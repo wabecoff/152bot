@@ -22,8 +22,6 @@ class Report:
     FETCH = "print users"
 
 
-
-
     def __init__(self, client):
         self.state = State.REPORT_START
         self.client = client
@@ -88,7 +86,7 @@ class Report:
             if self.state == State.MESSAGE_IDENTIFIED:
                 if message.content in(self.YES_KEYWORD):
                     self.state = State.ABUSE_TYPE_RESPONSE
-                    return ["What type of abuse does this fall under? Type a for [], b for [], c for [], d for []"]
+                    return ["What type of abuse does this fall under? Type a for violence, b for hatespeech, c for fraud, d for pornographic material."]
                 if message.content == self.NO_KEYWORD:
                     self.state = State.AWAITING_MESSAGE
                     continue
@@ -103,7 +101,7 @@ class Report:
                 self.state = State.REPORT_COMPLETE
                 data = [self.reported_id, self.link, self.reported_name, self.type, self.context]
                 return["Thank you for your report.", self.STOP_READING_AS_TEXT, data]
-            return ["this is a message"]
+            return ["Sorry, I didn't catch that.  Could you make sure you responded correctly?"]
 
         return []
 
