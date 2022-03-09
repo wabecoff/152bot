@@ -3,7 +3,7 @@ import uuid
 class User:
 
     reports_to_strike = 1
-    strikes_to_ban = 3
+    strikes_to_ban = 1
     report_id_ind = 0
 
     def __init__(self, id):

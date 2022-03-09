@@ -1,0 +1,2 @@
+keyword1:reason1
+( |^|\.|\!|,|\?)[pP][pP]?[oO0][oO0]?[oO0][oO0]?( |$|\.|\!|,|\?):vulgar term

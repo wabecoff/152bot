@@ -9,6 +9,9 @@ class State(Enum):
     REPORT_COMPLETE = auto()
     ABUSE_TYPE_RESPONSE = auto()
     ASK_FOR_CONTEXT = auto()
+    ASK_FOR_KEYWORD = auto()
+    EXPLAIN_KEYWORD = auto()
+
 
 class Report:
     START_KEYWORD = "report"
@@ -17,7 +20,8 @@ class Report:
     HELP_KEYWORD = "help"
     YES_KEYWORD = {"yes","Yes","y","YES"}
     NO_KEYWORD = "no"
-    ABUSE_TYPE = {"a","b","c","d"}
+    ABUSE_TYPE = {"a","b","c","d","A","B","C","D"}
+    BAN_TERM_KEYWORD = "ban keyword"
     STOP_READING_AS_TEXT = "this is a unique value"
     FETCH = "print users"
 
@@ -47,6 +51,24 @@ class Report:
                 self.file_report = False
                 self.state = State.REPORT_COMPLETE
                 return ["Report cancelled.", [self.reported_id, self.type, self.context]]
+
+            if message.content == self.BAN_TERM_KEYWORD:
+                reply = "Thank you for starting the keyword banning process. Please tell us what keyword you would like to ban.\n"
+                reply += "Only alphanumeric charaters are allowed."
+                self.state = State.ASK_FOR_KEYWORD
+                return [reply]
+
+            if self.state == State.ASK_FOR_KEYWORD:
+                reply = "The mods will consider banning this term.  Please give a brief reason for why this keyword should not be allowed."
+                keyword = message.content
+                self.state = State.EXPLAIN_KEYWORD
+                return [reply, self.STOP_READING_AS_TEXT, keyword]
+
+            if self.state == State.EXPLAIN_KEYWORD:
+                reply = "Thank you for bringing this to my attention.  The channel will be notified if the keyword was banned."
+                reason = message.content
+                self.state = State.REPORT_COMPLETE
+                return [reply, self.STOP_READING_AS_TEXT, reason]
 
             if self.state == State.REPORT_START:
                 reply =  "Thank you for starting the reporting process. "

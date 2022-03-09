@@ -6,7 +6,7 @@ import json
 import logging
 import re
 import requests
-from report import Report
+from report import Report, State
 from blacklist import Blacklist, Categories
 from user import User
 
@@ -55,8 +55,11 @@ class ModBot(discord.Client):
         self.reported_users = dict()
         self.STOP_READING_AS_TEXT = "this is a unique value"
         self.PRINT_INFO = "this is a different unique"
+        self.term_to_ban = None
+        self.term_reason = None
         self.perspective_key = key
         self.user_to_ban = None
+        self.waiting = False
         self.msg_to_delete = None
         self.awaiting_mod = False
         self.deleting_msg = False
@@ -123,16 +126,18 @@ class ModBot(discord.Client):
                 await message.channel.send(str(user.return_info()))
             return
 
+
         author_id = message.author.id
         responses = []
 
         # Only respond to messages if they're part of a reporting flow
-        if author_id not in self.reports and not message.content.startswith(Report.START_KEYWORD):
+        if author_id not in self.reports and not (message.content.startswith(Report.START_KEYWORD) or message.content.startswith(Report.BAN_TERM_KEYWORD)):
             return
 
         # If we don't currently have an active report for this user, add one
         if author_id not in self.reports:
             self.reports[author_id] = Report(self)
+
 
         # Let the report class handle this message; forward all the messages it returns to uss
         responses = await self.reports[author_id].handle_message(message)
@@ -142,6 +147,21 @@ class ModBot(discord.Client):
 
             if(r == self.STOP_READING_AS_TEXT):
                 data = responses[i+1]
+                #handle keyword banning
+
+                if isinstance(data, str):
+                    if self.reports[author_id].state == State.EXPLAIN_KEYWORD:
+                        self.term_to_ban = data
+                        break
+                    if self.reports[author_id].state == State.REPORT_COMPLETE:
+                        self.term_reason = data
+                        await self.mod_channel.send("Should we ban the term --- " + self.term_to_ban + " --- for the following reason?")
+                        await self.mod_channel.send(self.term_reason + " --- please answer yes/no")
+                        self.awaiting_mod = True
+                        break
+
+
+                #handle report filing
                 data.append(author_id)
                 user_id = data[0]
                 if user_id not in self.reported_users.keys():
@@ -172,8 +192,9 @@ class ModBot(discord.Client):
                 channel = self.mod_channel
                 self.awaiting_mod = True
                 self.user_to_ban = reported_user
-                await channel.send("Do you want to block " + reported_user.name  + "?  These are the reports against them " + str(reported_user.return_info()))
-                await channel.send("please respond, yes/no")
+                if self.msg_to_delete == None:
+                    await channel.send("Do you want to block " + reported_user.name  + "?  These are the reports against them " + str(reported_user.return_info()))
+                    await channel.send("please respond, yes/no")
 
         # If the report is complete or cancelled, remove it from our map
         if self.reports[author_id].report_complete():
@@ -182,26 +203,45 @@ class ModBot(discord.Client):
 
     async def handle_channel_message(self, message):
         # Only handle messages sent in the "group-#" channel
+        channel = message.channel
         if self.awaiting_mod and message.channel.name == f'group-{self.group_num}-mod':
-
             if message.content in Report.NO_KEYWORD:
-                if self.user_to_ban != None:
-                    await message.channel.send("Thank you. " + self.user_to_ban.name + " will not be banned.")
+                if self.term_to_ban != None:
+                    await message.channel.send("Thank you. The keyword --" + self.term_to_ban + "-- will not be banned.")
                 if self.deleting_msg:
                     await message.channel.send("Thank you. " + "The message will not be deleted.")
+                    self.deleting_msg = False
+                    self.msg_to_delete = None
+                    if self.user_to_ban != None:
+                        await channel.send("Do you want to block " + self.user_to_ban.name  + "?  These are the reports against them " + str(self.user_to_ban.return_info()))
+                        await channel.send("please respond, yes/no")
+                elif self.user_to_ban != None:
+                    await message.channel.send("Thank you. " + self.user_to_ban.name + " will not be banned.")
+                    self.user_to_ban = None
 
             if message.content in Report.YES_KEYWORD:
-                if self.user_to_ban != None:
-                    await message.channel.send("Thank you. " + self.user_to_ban.name + " has been banned.")
-                    await self.group_channel.send(self.user_to_ban.name  + " has been banned.")
+                if self.term_to_ban != None and self.term_reason != None:
+                    self.blacklistClass.add_with_description(self.term_to_ban, self.term_reason)
+                    await message.channel.send("Thank you. " + self.term_to_ban + " has been banned.")
+                    censored_term = self.term_to_ban[:2] + '*'*(len(self.term_to_ban)-2)
+                    self.term_to_ban = None
+                    self.term_reason = None
+                    await self.group_channel.send( "The term --- " + censored_term + " --- has been banned from our server.  Messages containing it will be deleted.")
                 if self.deleting_msg:
                     await message.channel.send("Thank you. The message has been deleted.")
                     await self.msg_to_delete.delete()
+                    self.deleting_msg = False
+                    self.msg_to_delete = None
+                    if self.user_to_ban != None:
+                        await channel.send("Do you want to block " + self.user_to_ban.name  + "?  These are the reports against them " + str(self.user_to_ban.return_info()))
+                        await channel.send("please respond, yes/no")
+                elif self.user_to_ban != None:
+                    await message.channel.send("Thank you. " + self.user_to_ban.name + " has been banned.")
+                    await self.group_channel.send(self.user_to_ban.name  + " has been banned.")
+                    self.user_to_ban = None
 
-            self.awaiting_mod = False
-            self.user_to_ban = None
-            self.deleting_msg = False
-            self.msg_to_delete = None
+            if (self.user_to_ban == None and self.term_to_ban == None and self.deleting_msg == False):
+                self.awaiting_mod = False
             return
 
         if not message.channel.name == f'group-{self.group_num}':
