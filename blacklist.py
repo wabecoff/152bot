@@ -13,7 +13,7 @@ class Blacklist:
 
     def __init__(self):
         self.blacklist = Data.raw
-        self.char_map = {'a': '[aA@]', 'A': '[aA@]', 'b': '[bB]', 'B': '[bB]', 'c': '[cCKk]', 'C': '[cCKk]', 'd': '[dD]', 'D': '[dD]', 'e': '[eE]', 'E': '[eE]', 'f': '[fF]', 'F': '[fF]', 'g': '[gG]', 'G': '[gG]', 'h': '[hH]', 'H': '[hH]', 'i': '[iI!]', 'I': '[iI!]', 'j': '[jJ]', 'J': '[jJ]', 'k': '[kKcC]', 'K': '[kKcC]', 'l': '[lL]', 'L': '[lL]', 'm': '[mM]', 'M': '[mM]', 'n': '[nN]', 'N': '[nN]', 'o': '[oO0]', 'O': '[oO0]', 'p': '[pP]', 'P': '[pP]', 'q': '[qQ]', 'Q': '[qQ]', 'r': '[rR]', 'R': '[rR]', 's': '[sS$]', 'S': '[sS$]', 't': '[tT]', 'T': '[tT]', 'u': '[uU]', 'U': '[uU]', 'v': '[vV]', 'V': '[vV]', 'w': '[wW]', 'W': '[wW]', 'x': '[xX]', 'X': '[xX]', 'y': '[yY]', 'Y': '[yY]', 'z': '[zZ]', 'Z': '[zZ]', '0':'[0oO]','1':'1','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9','.':'\.','?':'\?'}
+        self.char_map = {'a': '[aA@]', 'A': '[aA@]', 'b': '[bB]', 'B': '[bB]', 'c': '[cCKk]', 'C': '[cCKk]', 'd': '[dD]', 'D': '[dD]', 'e': '[eE]', 'E': '[eE]', 'f': '[fF]', 'F': '[fF]', 'g': '[gG]', 'G': '[gG]', 'h': '[hH]', 'H': '[hH]', 'i': '[iI!]', 'I': '[iI!]', 'j': '[jJ]', 'J': '[jJ]', 'k': '[kKcC]', 'K': '[kKcC]', 'l': '[lL]', 'L': '[lL]', 'm': '[mM]', 'M': '[mM]', 'n': '[nN]', 'N': '[nN]', 'o': '[oO0]', 'O': '[oO0]', 'p': '[pP]', 'P': '[pP]', 'q': '[qQ]', 'Q': '[qQ]', 'r': '[rR]', 'R': '[rR]', 's': '[sS$]', 'S': '[sS$]', 't': '[tT]', 'T': '[tT]', 'u': '[uU]', 'U': '[uU]', 'v': '[vV]', 'V': '[vV]', 'w': '[wW]', 'W': '[wW]', 'x': '[xX]', 'X': '[xX]', 'y': '[yY]', 'Y': '[yY]', 'z': '[zZ]', 'Z': '[zZ]', '0':'[0oO]','1':'1','2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9','.':'\.','?':'\?',' ':' '}
         self.path = "data.txt"
         self.read_in(self.path)
         self.category_descs = {}
@@ -33,7 +33,7 @@ class Blacklist:
         reg = "( |^|\.|\!|,|\?)"
         end = "( |$|\.|\!|,|\?)"
         for char in keyword:
-            if not char.isalnum(): continue
+            if not char.isalnum() or char == ' ': continue
             reg += self.char_map[char] + self.char_map[char] + "?"
         reg += end
         return reg
